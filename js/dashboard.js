@@ -1,3 +1,5 @@
+const qs = (sel) => document.querySelector(sel);
+
 function extractSheetId(url) {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   return match ? match[1] : null;
@@ -32,6 +34,7 @@ async function safeFetch(url) {
 }
 
 const CHART_RANGES = ["A:B", "D:D", "Q:Q", "E:G"];
+
 let db;
 
 async function loadDatabase() {
@@ -39,6 +42,7 @@ async function loadDatabase() {
     locateFile: (file) =>
       `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`,
   });
+
   const res = await fetch("kvk.db");
   const buffer = await res.arrayBuffer();
   db = new SQL.Database(new Uint8Array(buffer));
@@ -52,7 +56,10 @@ const SheetCache = {
 
 async function loadAllSheetsCache() {
   await loadDatabase();
+
   const kd = getKDFromURL();
+
+  //  Find KVKingdom
   const kvk = db.exec(`
 	  SELECT id
 	  FROM kvks
@@ -67,6 +74,8 @@ async function loadAllSheetsCache() {
   }
 
   const kvkId = kvk.values[0][0];
+
+  //  Get all snapshots (timeline)
   const snaps = db.exec(`
     SELECT id, snapshot_date
     FROM snapshots
@@ -74,10 +83,12 @@ async function loadAllSheetsCache() {
     ORDER BY snapshot_date
   `)[0];
 
-  SheetCache.sheetsList = snaps.values.map((r) => r[1]);
+  SheetCache.sheetsList = snaps.values.map((r) => r[1]); // dates
   SheetCache._snapIds = Object.fromEntries(
     snaps.values.map((r) => [r[1], r[0]]),
   );
+
+  //  Get last snapshot (grid)
   const lastSnap = db.exec(`
     SELECT id FROM snapshots
     WHERE kvk_id=${kvkId} AND is_last=1
@@ -108,7 +119,10 @@ async function loadAllSheetsCache() {
   SheetCache.lastSheetData = {
     rows: grid.values,
   };
+
+  // Load chart data (all snapshots)
   SheetCache.sheetsData = {};
+
   SheetCache.sheetsList.forEach((date) => {
     const sid = SheetCache._snapIds[date];
 
@@ -201,6 +215,7 @@ const gridOptions = {
         return a;
       },
     },
+
     {
       headerName: "Name",
       field: "name",
@@ -226,6 +241,7 @@ const gridOptions = {
         const base = Number(params.data?.power || 0).toLocaleString("en-US");
         return `Starting Power: ${base}`;
       },
+
       getQuickFilterText: () => "",
     },
     {
@@ -396,7 +412,10 @@ function getCurrentTheme() {
 }
 
 function formatSheetDate(sheetName) {
+  // Expecting DD_MM_YYYY
   if (!sheetName || typeof sheetName !== "string") return sheetName;
+
+  // Only replace if it matches the pattern
   if (/^\d{2}_\d{2}_\d{4}$/.test(sheetName)) {
     return sheetName.replaceAll("_", ".");
   }
@@ -453,6 +472,7 @@ function createChart(ctx, labels, datasets) {
       },
     },
   });
+
   applyChartTheme();
 }
 
@@ -512,12 +532,15 @@ function applyChartTheme() {
 
 function updateChart(governorId) {
   selectedGovernorId = governorId;
+
   const labels = SheetCache.sheetsList.map(formatSheetDate);
   const datasets = buildChartDatasets(governorId);
   const ctx = document.querySelector("#modal-chart").getContext("2d");
+
   const row = SheetCache.lastSheetData.rows.find(
     (r) => `${r[0]}` === `${governorId}`,
   );
+
   const titleText = row
     ? `${row[1]} (ID: ${row[0]})`
     : "Select a governor to view chart";
@@ -548,9 +571,12 @@ const chartSection = document.getElementById("chart-section");
 
 loadAllSheetsCache().then(() => {
   const spinner = document.getElementById("loading-spinner");
+
   const rows = SheetCache.lastSheetData.rows;
   const rowData = buildRowDataFromSheet(rows);
+
   gridApi.setGridOption("rowData", rowData);
+
   const sortedByDKP = [...rows]
     .sort((a, b) => Number(b[12]) - Number(a[12]))
     .slice(0, 3);
@@ -594,14 +620,15 @@ function renderTotals(rows = []) {
   container.innerHTML = "";
 
   const defs = [
-    { label: "Total T4 kills", col: 7 },
-    { label: "Total T5 kills", col: 9 },
-    { label: "Total Deads", col: 11 },
-    { label: "Total KP", col: 5 },
+    { label: "Total T4 kills", col: 7 }, // t4_diff
+    { label: "Total T5 kills", col: 9 }, // t5_diff
+    { label: "Total Deads", col: 11 }, // deads_diff
+    { label: "Total KP", col: 5 }, // kp_diff
   ];
 
   defs.forEach(({ label, col }) => {
     const sum = rows.reduce((acc, r) => acc + (Number(r[col]) || 0), 0);
+
     const box = document.createElement("div");
     box.className = "stat-box";
 
@@ -634,10 +661,14 @@ function escapeHtml(str) {
     }[s];
   });
 }
+
+// Sticky navbar shadow on scroll
 const navbar = document.getElementById("navbar");
 window.addEventListener("scroll", () => {
   navbar.classList.toggle("scrolled", window.scrollY > 10);
 });
+
+// Hamburger toggle
 const hamburger = document.getElementById("hamburger");
 const navLinks = document.getElementById("nav-links");
 hamburger.addEventListener("click", () => {
@@ -665,9 +696,12 @@ const themeToggle = document.getElementById("toggle-theme");
 function applyTheme(theme) {
   document.body.classList.remove("light", "dark");
   document.body.classList.add(theme);
+
   document.body.setAttribute("data-ag-theme-mode", theme);
+
   localStorage.setItem(THEME_KEY, theme);
 
+  // Update AG Grid theme
   if (gridApi) {
     const agTheme =
       theme === "dark"
@@ -709,7 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
+// GOVERNOR HISTORY MODAL
 function renderCollapsibleSection(title, content, defaultOpen = false) {
   const id = "sec_" + Math.random().toString(36).substr(2, 9);
 
@@ -826,6 +860,7 @@ function loadFarmKvKStats(farmIds) {
   const idList = farmIds.join(",");
 
   for (const [kvkId, kvkNumber] of kvksRes[0].values) {
+    // get last snapshot of this kvk
     const snapRes = db.exec(`
       SELECT id
       FROM snapshots
@@ -969,6 +1004,171 @@ function renderFarmsTable(rows) {
 		  <tbody>${trs}</tbody>
 		</table>
 	  `,
+    false, // collapsed by default
+  );
+}
+
+// Equipment slot definitions — DB column prefix → display label & box ID
+const EQUIP_SLOTS = [
+  { key: "helm",          label: "Helm",      id: "helmet"       },
+  { key: "chest",         label: "Chest",     id: "chest"        },
+  { key: "weapon",        label: "Weapon",    id: "weapon"       },
+  { key: "gloves",        label: "Gloves",    id: "gloves"       },
+  { key: "legs",          label: "Legs",      id: "legs"         },
+  { key: "boots",         label: "Boots",     id: "boots"        },
+  { key: "accessory",     label: "Acc.",      id: "accessory"    },
+  { key: "accessory_sec", label: "Acc. 2",    id: "accessory_sec"},
+];
+
+// Armament slot definitions
+const ARM_SLOTS = [
+  { prefix: "arm1", label: "Arm 1" },
+  { prefix: "arm2", label: "Arm 2" },
+  { prefix: "arm3", label: "Arm 3" },
+  { prefix: "arm4", label: "Arm 4" },
+];
+
+function loadGovernorEquipment(govId) {
+  const res = db.exec(`SELECT * FROM equipment WHERE player_id='${govId}' LIMIT 1`);
+  if (!res.length || !res[0].values.length) return null;
+
+  const cols = res[0].columns;
+  const vals = res[0].values[0];
+  const row = {};
+  cols.forEach((c, i) => { row[c] = vals[i]; });
+  return row;
+}
+
+function isMarchEmpty(row, suffix) {
+  // A march is "empty" if every gear slot (ignoring _lvl, _tal, armaments) is null/"none"/""
+  return EQUIP_SLOTS.every(slot => {
+    const colKey = suffix ? `${slot.key}_${suffix}` : slot.key;
+    const v = row[colKey];
+    return !v || String(v).trim().toLowerCase() === "none" || String(v).trim() === "";
+  });
+}
+
+function renderEquipBox(slot, itemName, lvl, tal, marchIdx) {
+  const isEmpty = !itemName || String(itemName).trim().toLowerCase() === "none" || String(itemName).trim() === "";
+  const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(itemName).trim())}.webp`;
+  const lvlText = isEmpty ? "—" : (lvl || 0);
+  const talText = isEmpty ? "—" : (tal || 0);
+
+  const imgTag = imgSrc
+    ? `<img src="${imgSrc}" alt="${escapeHtml(String(itemName))}"
+            loading="lazy"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+            style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`
+    : "";
+
+  const fallback = `<span style="display:${imgSrc ? "none" : "flex"};width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
+
+  return `
+    <div class="equip-slot" id="${slot.id}_${marchIdx}" title="${escapeHtml(slot.label)}${isEmpty ? "" : ": " + escapeHtml(String(itemName))}">
+      <div class="equip-box">
+        ${imgTag}${fallback}
+      </div>
+      <div class="equip-meta">
+        <span class="equip-lvl" title="Level">${lvlText}</span>
+        <span class="equip-tal" title="Talent">${talText}</span>
+      </div>
+    </div>`;
+}
+
+function renderArmamentRow(row) {
+  const arms = ARM_SLOTS.map(arm => {
+    const name  = row[arm.prefix]      || null;
+    const ins1  = row[`${arm.prefix}_ins`]  || "";
+    const ins2  = row[`${arm.prefix}_ins2`] || "";
+    const sn1   = row[`${arm.prefix}_stat_name`]   || "";
+    const sv1   = row[`${arm.prefix}_stat`]        || "";
+    const sn2   = row[`${arm.prefix}_stat2_name2`] || "";
+    const sv2   = row[`${arm.prefix}_stat2`]       || "";
+    const sn3   = row[`${arm.prefix}_stat3_name3`] || "";
+    const sv3   = row[`${arm.prefix}_stat3`]       || "";
+
+    const isEmpty = !name || String(name).trim().toLowerCase() === "none" || String(name).trim() === "";
+    const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(name).trim())}.webp`;
+
+    const imgTag = imgSrc
+      ? `<img src="${imgSrc}" alt="${escapeHtml(String(name))}"
+              loading="lazy"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+              style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`
+      : "";
+    const fallback = `<span style="display:${imgSrc ? "none" : "flex"};width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
+
+    const statsHtml = [
+      ins1 && `<span class="arm-ins">${escapeHtml(String(ins1))}</span>`,
+      ins2 && ins2 !== ins1 && `<span class="arm-ins">${escapeHtml(String(ins2))}</span>`,
+      sn1  && `<span class="arm-stat">${escapeHtml(String(sn1))}: <b>${escapeHtml(String(sv1))}</b></span>`,
+      sn2  && `<span class="arm-stat">${escapeHtml(String(sn2))}: <b>${escapeHtml(String(sv2))}</b></span>`,
+      sn3  && `<span class="arm-stat">${escapeHtml(String(sn3))}: <b>${escapeHtml(String(sv3))}</b></span>`,
+    ].filter(Boolean).join("");
+
+    return `
+      <div class="arm-card${isEmpty ? " arm-card--empty" : ""}">
+        <div class="arm-icon equip-box">
+          ${imgTag}${fallback}
+        </div>
+        <div class="arm-label">${escapeHtml(arm.label)}</div>
+        ${isEmpty ? "" : `<div class="arm-name">${escapeHtml(String(name))}</div>`}
+        ${statsHtml ? `<div class="arm-stats">${statsHtml}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="equip-arm-section">
+      <div class="equip-arm-label">Armaments</div>
+      <div class="arm-cards">${arms}</div>
+    </div>`;
+}
+
+function renderEquipmentSection(govId) {
+  const row = govId ? loadGovernorEquipment(govId) : null;
+
+  if (!row) {
+    return renderCollapsibleSection(
+      "Equipment",
+      `<div class="gov-modal-empty">No equipment data found.</div>`,
+      false,
+    );
+  }
+
+  // Build march rows — march 1 has no suffix, marches 2-7 have _2 to _7
+  const MARCH_SUFFIXES = ["", "2", "3", "4", "5", "6", "7"];
+
+  let marchRows = "";
+  let visibleCount = 0;
+
+  MARCH_SUFFIXES.forEach((suffix, idx) => {
+    const marchNum = idx + 1;
+    if (isMarchEmpty(row, suffix)) return; // skip entirely empty marches
+
+    visibleCount++;
+    const slotBoxes = EQUIP_SLOTS.map(slot => {
+      const colKey  = suffix ? `${slot.key}_${suffix}` : slot.key;
+      const lvlKey  = suffix ? `${slot.key}_lvl_${suffix}` : `${slot.key}_lvl`;
+      const talKey  = suffix ? `${slot.key}_tal_${suffix}` : `${slot.key}_tal`;
+      return renderEquipBox(slot, row[colKey], row[lvlKey], row[talKey], marchNum);
+    }).join("");
+
+    marchRows += `
+      <div class="equip-march-row">
+        <span class="equip-label">March ${marchNum}</span>
+        <div class="equip-slots">${slotBoxes}</div>
+      </div>`;
+  });
+
+  if (!marchRows) {
+    marchRows = `<div class="gov-modal-empty">All marches are empty.</div>`;
+  }
+
+  const armHtml = renderArmamentRow(row);
+
+  return renderCollapsibleSection(
+    "Equipment",
+    `<div class="equip-grid">${marchRows}${armHtml}</div>`,
     false,
   );
 }
@@ -1032,7 +1232,7 @@ function renderFarmKvKTable(rows) {
   return renderCollapsibleSection(
     "Farm Accounts – KvK Stats (All KvKs)",
     kvkBlocks,
-    false,
+    false, // collapsed by default
   );
 }
 
@@ -1065,7 +1265,8 @@ function openGovModal(govId, govName) {
           false,
         ) +
         renderFarmsTable(farms) +
-        renderFarmKvKTable(farmKvK);
+        renderFarmKvKTable(farmKvK) +
+        renderEquipmentSection(govId);
     } catch (err) {
       body.innerHTML = `<div class="gov-modal-empty">Error: ${escapeHtml(String(err))}</div>`;
     }
