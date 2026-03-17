@@ -1124,6 +1124,19 @@ function renderArmamentRow(row) {
     </div>`;
 }
 
+function renderPairBox(name) {
+  const isEmpty = !name || String(name).trim().toLowerCase() === "none" || String(name).trim() === "";
+  const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(name).trim())}.webp`;
+  const imgTag  = imgSrc
+    ? `<img src="${imgSrc}" alt="${escapeHtml(String(name))}" loading="lazy"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+            style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`
+    : "";
+  const fallback = `<span style="display:${imgSrc ? "none" : "flex"};width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">—</span>`;
+  const title = isEmpty ? "" : ` title="${escapeHtml(String(name))}"`;
+  return `<div class="equip-box equip-pair-box${isEmpty ? " equip-pair-box--empty" : ""}"${title}>${imgTag}${fallback}</div>`;
+}
+
 function renderEquipmentSection(govId) {
   const row = govId ? loadGovernorEquipment(govId) : null;
 
@@ -1153,10 +1166,17 @@ function renderEquipmentSection(govId) {
       return renderEquipBox(slot, row[colKey], row[lvlKey], row[talKey], marchNum);
     }).join("");
 
+    const pairSuffix = String(marchNum);
+    const comm1 = row[`pair${pairSuffix}_comm1`];
+    const comm2 = row[`pair${pairSuffix}_comm2`];
+    const pairBoxes = [comm1, comm2].map(name => renderPairBox(name)).join("");
+
     marchRows += `
       <div class="equip-march-row">
         <span class="equip-label">March ${marchNum}</span>
         <div class="equip-slots">${slotBoxes}</div>
+        <div class="equip-pair-sep"></div>
+        <div class="equip-pairs">${pairBoxes}</div>
       </div>`;
   });
 
