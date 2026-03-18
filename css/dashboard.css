@@ -460,11 +460,7 @@ footer {
 .arm-card--empty {
   opacity: 0.35;
 }
-.arm-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-}
+
 .arm-label {
   font-size: 0.68rem;
   opacity: 0.5;
@@ -501,4 +497,36 @@ footer {
 .arm-stat b {
   opacity: 1;
   font-weight: 600;
+}
+
+/* ── Pair commanders ─────────────────────────────────── */
+.equip-pairs-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--table-border);
+}
+.equip-pair-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.equip-pairs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.equip-pair-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--table-border);
+  background: var(--table-bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.equip-pair-box--empty {
+  opacity: 0.25;
 }
