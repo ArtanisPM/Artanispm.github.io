@@ -364,8 +364,6 @@ footer {
   gap: 10px;
   padding: 4px 0;
 }
-
-/* ── March row ───────────────────────────────────────── */
 .equip-march-row {
   display: flex;
   align-items: flex-start;
@@ -385,8 +383,6 @@ footer {
   flex-wrap: wrap;
   gap: 6px;
 }
-
-/* ── Individual slot ─────────────────────────────────── */
 .equip-slot {
   display: flex;
   flex-direction: column;
@@ -424,8 +420,6 @@ footer {
 .equip-tal {
   opacity: 0.45;
 }
-
-/* ── Armaments section ───────────────────────────────── */
 .equip-arm-section {
   margin-top: 14px;
   padding-top: 12px;
@@ -460,7 +454,6 @@ footer {
 .arm-card--empty {
   opacity: 0.35;
 }
-
 .arm-label {
   font-size: 0.9rem;
   opacity: 0.5;
@@ -498,8 +491,6 @@ footer {
   opacity: 1;
   font-weight: 600;
 }
-
-/* ── Pair commanders ─────────────────────────────────── */
 .equip-pairs-section {
   margin-top: 14px;
   padding-top: 12px;
