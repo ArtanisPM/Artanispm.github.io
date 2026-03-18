@@ -1104,6 +1104,29 @@ function renderPairBox(name) {
   return `<div class="equip-box equip-pair-box${isEmpty ? " equip-pair-box--empty" : ""}"${title}>${imgTag}${fallback}</div>`;
 }
 
+function renderPairsSection(row) {
+  // Collect all pair rows that have at least one non-empty commander
+  const PAIR_COUNT = 8;
+  let pairRows = "";
+  for (let n = 1; n <= PAIR_COUNT; n++) {
+    const comm1 = row[`pair${n}_comm1`];
+    const comm2 = row[`pair${n}_comm2`];
+    if (isEmptyVal(comm1) && isEmptyVal(comm2)) continue;
+    const boxes = [comm1, comm2].map(c => renderPairBox(c)).join("");
+    pairRows += `
+      <div class="equip-pair-row">
+        <span class="equip-label">Pair ${n}</span>
+        <div class="equip-pairs">${boxes}</div>
+      </div>`;
+  }
+  if (!pairRows) return "";
+  return `
+    <div class="equip-pairs-section">
+      <div class="equip-arm-label">Pairs</div>
+      ${pairRows}
+    </div>`;
+}
+
 function renderArmamentRow(armRow) {
   if (!armRow) return `
     <div class="equip-arm-section">
@@ -1114,12 +1137,6 @@ function renderArmamentRow(armRow) {
   const arms = ARM_SLOTS.map(arm => {
     const name = armRow[arm.prefix];
     if (isEmptyVal(name)) return "";
-
-    const imgSrc  = `icons/${encodeURIComponent(String(name).trim())}.webp`;
-    const imgTag  = `<img src="${imgSrc}" alt="${escapeHtml(String(name))}" loading="lazy"
-            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-            style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`;
-    const fallback = `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
 
     // Inscriptions ins..ins8 — skip empty/none
     const insKeys = ["_ins","_ins2","_ins3","_ins4","_ins5","_ins6","_ins7","_ins8"];
@@ -1143,7 +1160,6 @@ function renderArmamentRow(armRow) {
 
     return `
       <div class="arm-card">
-        <div class="arm-icon equip-box">${imgTag}${fallback}</div>
         <div class="arm-label">${escapeHtml(arm.label)}</div>
         <div class="arm-name">${escapeHtml(String(name))}</div>
         ${inscriptions ? `<div class="arm-stats arm-ins-group">${inscriptions}</div>` : ""}
@@ -1185,16 +1201,10 @@ function renderEquipmentSection(govId) {
       return renderEquipBox(slot, row[colKey], row[lvlKey], row[talKey], marchNum);
     }).join("");
 
-    const comm1    = row[`pair${marchNum}_comm1`];
-    const comm2    = row[`pair${marchNum}_comm2`];
-    const pairBoxes = [comm1, comm2].map(n => renderPairBox(n)).join("");
-
     marchRows += `
       <div class="equip-march-row">
         <span class="equip-label">March ${marchNum}</span>
         <div class="equip-slots">${slotBoxes}</div>
-        <div class="equip-pair-sep"></div>
-        <div class="equip-pairs">${pairBoxes}</div>
       </div>`;
   });
 
@@ -1202,7 +1212,7 @@ function renderEquipmentSection(govId) {
 
   return renderCollapsibleSection(
     "Equipment",
-    `<div class="equip-grid">${marchRows}${renderArmamentRow(armRow)}</div>`,
+    `<div class="equip-grid">${marchRows}${renderArmamentRow(armRow)}${renderPairsSection(row)}</div>`,
     false,
   );
 }
