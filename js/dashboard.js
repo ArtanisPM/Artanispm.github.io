@@ -1026,48 +1026,64 @@ const ARM_SLOTS = [
   { prefix: "arm2", label: "Arm 2" },
   { prefix: "arm3", label: "Arm 3" },
   { prefix: "arm4", label: "Arm 4" },
+  { prefix: "arm5", label: "Arm 5" },
+  { prefix: "arm6", label: "Arm 6" },
+  { prefix: "arm7", label: "Arm 7" },
+  { prefix: "arm8", label: "Arm 8" },
 ];
 
 function loadGovernorEquipment(govId) {
-  const res = db.exec(`SELECT * FROM equipment WHERE player_id='${govId}' LIMIT 1`);
-  if (!res.length || !res[0].values.length) return null;
+  try {
+    const t = db.exec(`SELECT name FROM sqlite_master WHERE type='table' AND name='equipment'`);
+    if (!t.length || !t[0].values.length) return null;
+    const res = db.exec(`SELECT * FROM equipment WHERE player_id=${Number(govId)} LIMIT 1`);
+    if (!res.length || !res[0].values.length) return null;
+    const row = {};
+    res[0].columns.forEach((c, i) => { row[c] = res[0].values[0][i]; });
+    return row;
+  } catch(e) { console.error("loadGovernorEquipment:", e); return null; }
+}
 
-  const cols = res[0].columns;
-  const vals = res[0].values[0];
-  const row = {};
-  cols.forEach((c, i) => { row[c] = vals[i]; });
-  return row;
+function loadGovernorArmaments(govId) {
+  try {
+    const t = db.exec(`SELECT name FROM sqlite_master WHERE type='table' AND name='armaments'`);
+    if (!t.length || !t[0].values.length) return null;
+    const res = db.exec(`SELECT * FROM armaments WHERE player_id=${Number(govId)} LIMIT 1`);
+    if (!res.length || !res[0].values.length) return null;
+    const row = {};
+    res[0].columns.forEach((c, i) => { row[c] = res[0].values[0][i]; });
+    return row;
+  } catch(e) { console.error("loadGovernorArmaments:", e); return null; }
+}
+
+// Centralised empty check: null, "", "none", 0, "0"
+function isEmptyVal(v) {
+  if (v === null || v === undefined || v === "") return true;
+  const s = String(v).trim().toLowerCase();
+  return s === "none" || s === "0";
 }
 
 function isMarchEmpty(row, suffix) {
-  // A march is "empty" if every gear slot (ignoring _lvl, _tal, armaments) is null/"none"/""
   return EQUIP_SLOTS.every(slot => {
     const colKey = suffix ? `${slot.key}_${suffix}` : slot.key;
-    const v = row[colKey];
-    return !v || String(v).trim().toLowerCase() === "none" || String(v).trim() === "";
+    return isEmptyVal(row[colKey]);
   });
 }
 
 function renderEquipBox(slot, itemName, lvl, tal, marchIdx) {
-  const isEmpty = !itemName || String(itemName).trim().toLowerCase() === "none" || String(itemName).trim() === "";
+  const isEmpty = isEmptyVal(itemName);
   const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(itemName).trim())}.webp`;
-  const lvlText = isEmpty ? "—" : (lvl || 0);
-  const talText = isEmpty ? "—" : (tal || 0);
-
-  const imgTag = imgSrc
-    ? `<img src="${imgSrc}" alt="${escapeHtml(String(itemName))}"
-            loading="lazy"
+  const lvlText = (!isEmpty && !isEmptyVal(lvl)) ? lvl : "—";
+  const talText = (!isEmpty && !isEmptyVal(tal)) ? tal : "—";
+  const imgTag  = imgSrc
+    ? `<img src="${imgSrc}" alt="${escapeHtml(String(itemName))}" loading="lazy"
             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
             style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`
     : "";
-
   const fallback = `<span style="display:${imgSrc ? "none" : "flex"};width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
-
   return `
     <div class="equip-slot" id="${slot.id}_${marchIdx}" title="${escapeHtml(slot.label)}${isEmpty ? "" : ": " + escapeHtml(String(itemName))}">
-      <div class="equip-box">
-        ${imgTag}${fallback}
-      </div>
+      <div class="equip-box">${imgTag}${fallback}</div>
       <div class="equip-meta">
         <span class="equip-lvl" title="Level">${lvlText}</span>
         <span class="equip-tal" title="Talent">${talText}</span>
@@ -1075,57 +1091,8 @@ function renderEquipBox(slot, itemName, lvl, tal, marchIdx) {
     </div>`;
 }
 
-function renderArmamentRow(row) {
-  const arms = ARM_SLOTS.map(arm => {
-    const name  = row[arm.prefix]      || null;
-    const ins1  = row[`${arm.prefix}_ins`]  || "";
-    const ins2  = row[`${arm.prefix}_ins2`] || "";
-    const sn1   = row[`${arm.prefix}_stat_name`]   || "";
-    const sv1   = row[`${arm.prefix}_stat`]        || "";
-    const sn2   = row[`${arm.prefix}_stat2_name2`] || "";
-    const sv2   = row[`${arm.prefix}_stat2`]       || "";
-    const sn3   = row[`${arm.prefix}_stat3_name3`] || "";
-    const sv3   = row[`${arm.prefix}_stat3`]       || "";
-
-    const isEmpty = !name || String(name).trim().toLowerCase() === "none" || String(name).trim() === "";
-    const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(name).trim())}.webp`;
-
-    const imgTag = imgSrc
-      ? `<img src="${imgSrc}" alt="${escapeHtml(String(name))}"
-              loading="lazy"
-              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-              style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`
-      : "";
-    const fallback = `<span style="display:${imgSrc ? "none" : "flex"};width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
-
-    const statsHtml = [
-      ins1 && `<span class="arm-ins">${escapeHtml(String(ins1))}</span>`,
-      ins2 && ins2 !== ins1 && `<span class="arm-ins">${escapeHtml(String(ins2))}</span>`,
-      sn1  && `<span class="arm-stat">${escapeHtml(String(sn1))}: <b>${escapeHtml(String(sv1))}</b></span>`,
-      sn2  && `<span class="arm-stat">${escapeHtml(String(sn2))}: <b>${escapeHtml(String(sv2))}</b></span>`,
-      sn3  && `<span class="arm-stat">${escapeHtml(String(sn3))}: <b>${escapeHtml(String(sv3))}</b></span>`,
-    ].filter(Boolean).join("");
-
-    return `
-      <div class="arm-card${isEmpty ? " arm-card--empty" : ""}">
-        <div class="arm-icon equip-box">
-          ${imgTag}${fallback}
-        </div>
-        <div class="arm-label">${escapeHtml(arm.label)}</div>
-        ${isEmpty ? "" : `<div class="arm-name">${escapeHtml(String(name))}</div>`}
-        ${statsHtml ? `<div class="arm-stats">${statsHtml}</div>` : ""}
-      </div>`;
-  }).join("");
-
-  return `
-    <div class="equip-arm-section">
-      <div class="equip-arm-label">Armaments</div>
-      <div class="arm-cards">${arms}</div>
-    </div>`;
-}
-
 function renderPairBox(name) {
-  const isEmpty = !name || String(name).trim().toLowerCase() === "none" || String(name).trim() === "";
+  const isEmpty = isEmptyVal(name);
   const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(name).trim())}.webp`;
   const imgTag  = imgSrc
     ? `<img src="${imgSrc}" alt="${escapeHtml(String(name))}" loading="lazy"
@@ -1137,8 +1104,63 @@ function renderPairBox(name) {
   return `<div class="equip-box equip-pair-box${isEmpty ? " equip-pair-box--empty" : ""}"${title}>${imgTag}${fallback}</div>`;
 }
 
+function renderArmamentRow(armRow) {
+  if (!armRow) return `
+    <div class="equip-arm-section">
+      <div class="equip-arm-label">Armaments</div>
+      <div class="gov-modal-empty" style="padding:1rem 0;">No armament data found.</div>
+    </div>`;
+
+  const arms = ARM_SLOTS.map(arm => {
+    const name = armRow[arm.prefix];
+    if (isEmptyVal(name)) return "";
+
+    const imgSrc  = `icons/${encodeURIComponent(String(name).trim())}.webp`;
+    const imgTag  = `<img src="${imgSrc}" alt="${escapeHtml(String(name))}" loading="lazy"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+            style="width:100%;height:100%;object-fit:contain;border-radius:2px;">`;
+    const fallback = `<span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:9px;opacity:0.35;">?</span>`;
+
+    // Inscriptions ins..ins8 — skip empty/none
+    const insKeys = ["_ins","_ins2","_ins3","_ins4","_ins5","_ins6","_ins7","_ins8"];
+    const inscriptions = insKeys
+      .map(k => armRow[`${arm.prefix}${k}`])
+      .filter(v => !isEmptyVal(v))
+      .map(v => `<span class="arm-ins">${escapeHtml(String(v))}</span>`)
+      .join("");
+
+    // Stats — DB col names: stat_name/stat, stat2_name2/stat2, stat3_name3/stat3, stat4_name4/stat4
+    const statSlots = [
+      { n: `${arm.prefix}_stat_name`,   v: `${arm.prefix}_stat`   },
+      { n: `${arm.prefix}_stat2_name2`, v: `${arm.prefix}_stat2`  },
+      { n: `${arm.prefix}_stat3_name3`, v: `${arm.prefix}_stat3`  },
+      { n: `${arm.prefix}_stat4_name4`, v: `${arm.prefix}_stat4`  },
+    ];
+    const statsHtml = statSlots
+      .filter(s => !isEmptyVal(armRow[s.n]) && !isEmptyVal(armRow[s.v]))
+      .map(s => `<span class="arm-stat">${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`)
+      .join("");
+
+    return `
+      <div class="arm-card">
+        <div class="arm-icon equip-box">${imgTag}${fallback}</div>
+        <div class="arm-label">${escapeHtml(arm.label)}</div>
+        <div class="arm-name">${escapeHtml(String(name))}</div>
+        ${inscriptions ? `<div class="arm-stats arm-ins-group">${inscriptions}</div>` : ""}
+        ${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`                  : ""}
+      </div>`;
+  }).filter(Boolean).join("");
+
+  return `
+    <div class="equip-arm-section">
+      <div class="equip-arm-label">Armaments</div>
+      <div class="arm-cards">${arms || '<div class="gov-modal-empty" style="padding:1rem 0;">No armaments set.</div>'}</div>
+    </div>`;
+}
+
 function renderEquipmentSection(govId) {
-  const row = govId ? loadGovernorEquipment(govId) : null;
+  const row    = govId ? loadGovernorEquipment(govId) : null;
+  const armRow = govId ? loadGovernorArmaments(govId) : null;
 
   if (!row) {
     return renderCollapsibleSection(
@@ -1148,28 +1170,24 @@ function renderEquipmentSection(govId) {
     );
   }
 
-  // Build march rows — march 1 has no suffix, marches 2-7 have _2 to _7
-  const MARCH_SUFFIXES = ["", "2", "3", "4", "5", "6", "7"];
-
+  // Marches 1–8 (march 1 = no suffix, 2–8 = numeric suffix)
+  const MARCH_SUFFIXES = ["", "2", "3", "4", "5", "6", "7", "8"];
   let marchRows = "";
-  let visibleCount = 0;
 
   MARCH_SUFFIXES.forEach((suffix, idx) => {
     const marchNum = idx + 1;
-    if (isMarchEmpty(row, suffix)) return; // skip entirely empty marches
+    if (isMarchEmpty(row, suffix)) return;
 
-    visibleCount++;
     const slotBoxes = EQUIP_SLOTS.map(slot => {
-      const colKey  = suffix ? `${slot.key}_${suffix}` : slot.key;
-      const lvlKey  = suffix ? `${slot.key}_lvl_${suffix}` : `${slot.key}_lvl`;
-      const talKey  = suffix ? `${slot.key}_tal_${suffix}` : `${slot.key}_tal`;
+      const colKey = suffix ? `${slot.key}_${suffix}` : slot.key;
+      const lvlKey = suffix ? `${slot.key}_lvl_${suffix}` : `${slot.key}_lvl`;
+      const talKey = suffix ? `${slot.key}_tal_${suffix}` : `${slot.key}_tal`;
       return renderEquipBox(slot, row[colKey], row[lvlKey], row[talKey], marchNum);
     }).join("");
 
-    const pairSuffix = String(marchNum);
-    const comm1 = row[`pair${pairSuffix}_comm1`];
-    const comm2 = row[`pair${pairSuffix}_comm2`];
-    const pairBoxes = [comm1, comm2].map(name => renderPairBox(name)).join("");
+    const comm1    = row[`pair${marchNum}_comm1`];
+    const comm2    = row[`pair${marchNum}_comm2`];
+    const pairBoxes = [comm1, comm2].map(n => renderPairBox(n)).join("");
 
     marchRows += `
       <div class="equip-march-row">
@@ -1180,18 +1198,15 @@ function renderEquipmentSection(govId) {
       </div>`;
   });
 
-  if (!marchRows) {
-    marchRows = `<div class="gov-modal-empty">All marches are empty.</div>`;
-  }
-
-  const armHtml = renderArmamentRow(row);
+  if (!marchRows) marchRows = `<div class="gov-modal-empty">All marches are empty.</div>`;
 
   return renderCollapsibleSection(
     "Equipment",
-    `<div class="equip-grid">${marchRows}${armHtml}</div>`,
+    `<div class="equip-grid">${marchRows}${renderArmamentRow(armRow)}</div>`,
     false,
   );
 }
+
 
 function renderFarmKvKTable(rows) {
   if (!rows.length)
@@ -1267,27 +1282,26 @@ function openGovModal(govId, govName) {
   document.body.style.overflow = "hidden";
 
   setTimeout(() => {
+    const safeRender = (label, fn) => {
+      try { return fn(); }
+      catch(e) { console.error("[modal:" + label + "]", e); return ""; }
+    };
     try {
       const history = loadGovHistory(govId);
-      const farms = loadGovernorFarms(govId);
+      const farms   = loadGovernorFarms(govId);
       const farmIds = farms.map((f) => f.id);
       const farmKvK = loadFarmKvKStats(farmIds);
       body.innerHTML =
-        `
-		  <div class="modal-controls">
-			<button onclick="expandAllSections()">Expand All</button>
-			<button onclick="collapseAllSections()">Collapse All</button>
-		  </div>
-		` +
-        renderCollapsibleSection(
-          "Governor History",
-          renderModalTable(history),
-          false,
-        ) +
-        renderFarmsTable(farms) +
-        renderFarmKvKTable(farmKvK) +
-        renderEquipmentSection(govId);
+        '<div class="modal-controls">' +
+        '  <button onclick="expandAllSections()">Expand All</button>' +
+        '  <button onclick="collapseAllSections()">Collapse All</button>' +
+        '</div>' +
+        safeRender("history",   () => renderCollapsibleSection("Governor History", renderModalTable(history), false)) +
+        safeRender("farms",     () => renderFarmsTable(farms)) +
+        safeRender("farmKvK",   () => renderFarmKvKTable(farmKvK)) +
+        safeRender("equipment", () => renderEquipmentSection(govId));
     } catch (err) {
+      console.error("openGovModal:", err);
       body.innerHTML = `<div class="gov-modal-empty">Error: ${escapeHtml(String(err))}</div>`;
     }
   }, 50);
