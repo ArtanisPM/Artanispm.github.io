@@ -1317,6 +1317,113 @@ function openGovModal(govId, govName) {
   }, 50);
 }
 
+// ===== FARMS OVERVIEW MODAL =====
+
+function loadAllFarmsGrouped() {
+  const mainsRes = db.exec(`
+    SELECT player_id, name, power, killpoints, deads, ch
+    FROM farm_accounts
+    WHERE acc_type='main'
+    ORDER BY name COLLATE NOCASE
+  `);
+  if (!mainsRes.length) return [];
+
+  return mainsRes[0].values.map(m => {
+    const mainId = m[0];
+    const farmsRes = db.exec(`
+      SELECT player_id, name, power, killpoints, deads, ch
+      FROM farm_accounts
+      WHERE main_id=${mainId} AND acc_type='farm'
+      ORDER BY power DESC
+    `);
+    const farms = farmsRes.length ? farmsRes[0].values.map(f => ({
+      id: f[0], name: f[1], power: f[2], killpoints: f[3], deads: f[4], ch: f[5]
+    })) : [];
+    return {
+      main: { id: mainId, name: m[1], power: m[2], killpoints: m[3], deads: m[4], ch: m[5] },
+      farms
+    };
+  });
+}
+
+function renderFarmsOverviewModal() {
+  const overlay = document.getElementById("farmsOverviewOverlay");
+  const body = document.getElementById("farmsOverviewBody");
+  body.innerHTML = `<div class="gov-modal-loading"><div class="spinner"></div><span>Loading…</span></div>`;
+  overlay.classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  setTimeout(() => {
+    try {
+      const groups = loadAllFarmsGrouped();
+      if (!groups.length) {
+        body.innerHTML = `<div class="gov-modal-empty">No farm accounts found.</div>`;
+        return;
+      }
+
+      const farmThs = ["ID","Name","Power","Kill Points","Deads","CH"]
+        .map(h => `<th>${h}</th>`).join("");
+
+      let html = "";
+      groups.forEach(({ main, farms }) => {
+        const farmRows = farms.length
+          ? farms.map(f => `
+              <tr>
+                <td>${escapeHtml(String(f.id))}</td>
+                <td class="kvk-label">${escapeHtml(f.name)}</td>
+                <td>${Number(f.power).toLocaleString("en-US")}</td>
+                <td>${Number(f.killpoints).toLocaleString("en-US")}</td>
+                <td>${Number(f.deads).toLocaleString("en-US")}</td>
+                <td>${escapeHtml(String(f.ch))}</td>
+              </tr>`).join("")
+          : `<tr><td colspan="6" class="gov-modal-empty" style="padding:8px 0;">No farms linked.</td></tr>`;
+
+        const content = `
+          <div class="fo-main-info">
+            <span class="fo-main-id">${escapeHtml(String(main.id))}</span>
+            <span class="fo-main-power">${Number(main.power).toLocaleString("en-US")} power</span>
+            <span class="fo-farm-count">${farms.length} farm${farms.length !== 1 ? "s" : ""}</span>
+          </div>
+          <table class="gov-modal-table fo-farms-table">
+            <thead><tr>${farmThs}</tr></thead>
+            <tbody>${farmRows}</tbody>
+          </table>`;
+
+        html += renderCollapsibleSection(`${escapeHtml(main.name)}`, content, false);
+      });
+
+      body.innerHTML =
+        `<div class="modal-controls">
+           <button onclick="expandAllFarmsOverview()">Expand All</button>
+           <button onclick="collapseAllFarmsOverview()">Collapse All</button>
+         </div>` + html;
+    } catch (err) {
+      body.innerHTML = `<div class="gov-modal-empty">Error: ${escapeHtml(String(err))}</div>`;
+    }
+  }, 50);
+}
+
+function expandAllFarmsOverview() {
+  document.querySelectorAll("#farmsOverviewBody .collapsible-content").forEach(el => el.style.display = "block");
+  document.querySelectorAll("#farmsOverviewBody .collapsible-icon").forEach(icon => icon.textContent = "−");
+}
+
+function collapseAllFarmsOverview() {
+  document.querySelectorAll("#farmsOverviewBody .collapsible-content").forEach(el => el.style.display = "none");
+  document.querySelectorAll("#farmsOverviewBody .collapsible-icon").forEach(icon => icon.textContent = "+");
+}
+
+function closeFarmsOverviewModal() {
+  document.getElementById("farmsOverviewOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+document.getElementById("farms-overview-btn").addEventListener("click", renderFarmsOverviewModal);
+document.getElementById("farmsOverviewClose").addEventListener("click", closeFarmsOverviewModal);
+document.getElementById("farmsOverviewOverlay").addEventListener("click", e => {
+  if (e.target === e.currentTarget) closeFarmsOverviewModal();
+});
+
 function closeGovModal() {
   document.getElementById("govModalOverlay").classList.remove("open");
   document.body.style.overflow = "";
