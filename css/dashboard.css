@@ -521,3 +521,48 @@ footer {
 .equip-pair-box--empty {
   opacity: 0.25;
 }
+.quick-filter-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.farms-overview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  background: var(--table-bg);
+  border: 2px solid var(--table-border);
+  border-radius: 8px;
+  color: var(--text-color);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.farms-overview-btn:hover {
+  background: var(--row-hover-bg);
+  border-color: var(--chart-line);
+}
+
+.fo-main-info {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 6px 0 10px;
+  font-size: 0.8rem;
+  opacity: 0.65;
+  color: var(--text-color);
+}
+.fo-main-id { font-family: monospace; }
+.fo-farm-count { 
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--chart-line);
+  opacity: 1;
+}
+.fo-farms-table { margin-top: 0; }
