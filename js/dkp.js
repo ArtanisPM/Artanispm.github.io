@@ -141,18 +141,15 @@ let resultsGridApi = null;
     }
     return null;
   }
+
 	function getExportTimestamp() {
 	  const now = new Date();
-	
 	  const dd = String(now.getDate()).padStart(2, "0");
-	  const mm = String(now.getMonth() + 1).padStart(2, "0"); // months are 0-based
+	  const mm = String(now.getMonth() + 1).padStart(2, "0");
 	  const yyyy = now.getFullYear();
-	
 	  const HH = String(now.getHours()).padStart(2, "0");
 	  const MM = String(now.getMinutes()).padStart(2, "0");
-	
-	  const uuid = crypto.randomUUID().split("-")[0];
-	
+	  const uuid = crypto.randomUUID().split("-")[0]; // short 8-char segment
 	  return `${dd}-${mm}-${yyyy}-T${HH}-${MM}-${uuid}`;
 	}
 
