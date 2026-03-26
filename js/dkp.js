@@ -553,7 +553,7 @@ let resultsGridApi = null;
     XLSX.utils.book_append_sheet(wb, ws, "DKP");
     XLSX.writeFile(
       wb,
-      `dkp_output_${new Date().toISOString().replace(/[:.]/g, "-")}.xlsx`,
+      `dkp_output_${new Date().toISOString().replace(/[:.]/g, "-")}.xlsx`, { compression: true }
     );
   }
   function exportToCsv(rows) {
