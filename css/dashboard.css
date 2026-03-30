@@ -479,10 +479,8 @@ footer {
   border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
-  margin-bottom: 6px;
   border: 1.5px solid;
-  width: fit-content;
-  max-width: 100%;
+  width: auto;
 }
 .arm-ins.tier-gold {
   background: #2a1f00; border-color: #c9920a; color: #f5c842;
@@ -500,7 +498,6 @@ footer {
 .arm-ins.tier-blue .badge-dot { background: #80b8f5; }
 .arm-ins.tier-gray .badge-dot { background: #9a9aa0; }
 .arm-stat b { font-weight: 600; opacity: 0.9; }
-.arm-stats { display: flex; flex-direction: column; gap: 0; }
 .arm-stat {
   font-size: 0.9rem;
   color: var(--text-color);
