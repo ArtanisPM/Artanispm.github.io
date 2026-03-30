@@ -1146,8 +1146,8 @@ function renderArmamentRow(armRow) {
 	  .map(k => armRow[`${arm.prefix}${k}`])
 	  .filter(v => !isEmptyVal(v))
 	  .map(v => {
-	    const tier = getAbilityTier(String(v));
-	    return `<span class="arm-ins tier-${tier}"><span class="badge-dot"></span>${escapeHtml(String(v))}</span>`;
+		const tier = getAbilityTier(String(v));
+		return `<span class="arm-ins tier-${tier}">${escapeHtml(String(v))}</span>`;
 	  })
 	  .join("");
 
