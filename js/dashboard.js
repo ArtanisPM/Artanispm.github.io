@@ -1165,8 +1165,8 @@ function renderArmamentRow(armRow) {
     return `
       <div class="arm-card">
         <div class="arm-name">${escapeHtml(String(name))}</div>
-        ${inscriptions ? `<div class="arm-stats arm-ins-group">${inscriptions}</div>` : ""}
-        ${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`                  : ""}
+		${inscriptions ? `<div class="arm-ins-group">${inscriptions}</div>` : ""}
+		${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`         : ""}
       </div>`;
   }).filter(Boolean).join("");
 
