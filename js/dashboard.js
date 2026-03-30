@@ -1112,6 +1112,20 @@ function renderPairsSection(row) {
     </div>`;
 }
 
+const ABILITY_TIERS = (() => {
+  const gold = new Set(["Destructive","Straight to the point","Invincible","Fearless","Hunter","Unstoppable","Balanced","Intrepid","Sharpshooter","Drilled","Merciless","Astute","Influential leader","Loaded","Civilized","Fixed","Cocoon","Inviolable","Crowned","Rounded","Rich","Battlements","Moneyed","Transporter","Enmeshed","Logistical","Unassailed","Winged","Irreproachable","Cautious","Shield Bash","Rock Solid","Avenger","Guarding light","Turn the corner","Panacea","Hasty Retreat","Blast Shield","Full Force","United Front","Thrasher","Butterfly effect","Steelskin","Flurry","Battle Ready","Fortified","Chokepoint","Steelheart","Vanquisher","Self Heal","Brilliant","Mountain","Toppler","Demolisher","Airtight","Thundering","Advantage advanced","Indomitable","Maneuver at ease","Horseback action"]);
+  const blue = new Set(["Battle-Ready","Even-Keeled","Unswerving","Forceful","Crazed","Boiling Blood","Defiant","Focus Fire","Full Draw","Bloody Bolt","Tempered","Sharp Arrows","Drums of war","Nullify","Counter-Parry","Persevering","Self-Defense","Aegis","Reinforced","Tenacious","Gold Panner","Safeguard","Plentitude","Sturdy Back","Entangling","Arms Race","Sprinter","Strider","Ironclad","Strike & parry","Unshakeable","Convalescing","Back In Action","Medic","Rise Up","Refreshing","Fall Back","Spread Out","Shock Troops","Mutual Defense","Pummeler","Causative","Determined","Relentless","Vigilant","Resolute","Precautions","Ironsides","Overwhelm","Self Tend","Stone","Imploder","Raider","Hardheaded","Rattling","Fury","Soar","Ballista","Divine Staff"]);
+  return { gold, blue };
+})();
+
+function getAbilityTier(name) {
+  if (!name) return "gray";
+  const n = String(name).trim();
+  if (ABILITY_TIERS.gold.has(n)) return "gold";
+  if (ABILITY_TIERS.blue.has(n)) return "blue";
+  return "gray";
+}
+
 function renderArmamentRow(armRow) {
   if (!armRow) return `
     <div class="equip-arm-section">
@@ -1127,7 +1141,10 @@ function renderArmamentRow(armRow) {
     const inscriptions = insKeys
       .map(k => armRow[`${arm.prefix}${k}`])
       .filter(v => !isEmptyVal(v))
-      .map(v => `<span class="arm-ins">${escapeHtml(String(v))}</span>`)
+	  .map(s => {
+		const tier = getAbilityTier(String(armRow[s.n]));
+		return `<span class="arm-stat tier-${tier}"><span class="badge-dot"></span>${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`;
+	  })
       .join("");
 
     const statSlots = [
