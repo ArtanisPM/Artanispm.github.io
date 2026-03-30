@@ -440,7 +440,7 @@ footer {
   align-items: center;
   gap: 3px;
   min-width: 80px;
-  max-width: 110px;
+  max-width: 350px;
   background: var(--table-bg);
   border: 1px solid var(--table-border);
   border-radius: 8px;
@@ -466,7 +466,7 @@ footer {
 .arm-stats {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: left;
   gap: 2px;
   margin-top: 2px;
 }
