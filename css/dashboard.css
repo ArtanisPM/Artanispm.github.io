@@ -493,10 +493,12 @@ footer {
 .arm-ins.tier-gray {
   background: #1a1a1d; border-color: #6b6b72; color: #c8c8cc;
 }
-
-.arm-ins.tier-gold { background: #f5c842; }
-.arm-ins.tier-blue { background: #80b8f5; }
-.arm-ins.tier-gray { background: #9a9aa0; }
+.arm-ins .badge-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.arm-ins.tier-gold .badge-dot { background: #f5c842; }
+.arm-ins.tier-blue .badge-dot { background: #80b8f5; }
+.arm-ins.tier-gray .badge-dot { background: #9a9aa0; }
 .arm-stat b { font-weight: 600; opacity: 0.9; }
 .arm-stats { display: flex; flex-direction: column; gap: 0; }
 .arm-stat {
