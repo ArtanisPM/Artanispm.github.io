@@ -1123,6 +1123,10 @@ function getAbilityTier(name) {
   const n = String(name).trim();
   if (ABILITY_TIERS.gold.has(n)) return "gold";
   if (ABILITY_TIERS.blue.has(n)) return "blue";
+  // try case-insensitive fallback
+  const lower = n.toLowerCase();
+  for (const v of ABILITY_TIERS.gold) if (v.toLowerCase() === lower) return "gold";
+  for (const v of ABILITY_TIERS.blue) if (v.toLowerCase() === lower) return "blue";
   return "gray";
 }
 
