@@ -1142,14 +1142,14 @@ function renderArmamentRow(armRow) {
     if (isEmptyVal(name)) return "";
 
     const insKeys = ["_ins","_ins2","_ins3","_ins4","_ins5","_ins6","_ins7","_ins8"];
-    const inscriptions = insKeys
-      .map(k => armRow[`${arm.prefix}${k}`])
-      .filter(v => !isEmptyVal(v))
-	  .map(s => {
-		const tier = getAbilityTier(String(armRow[s.n]));
-		return `<span class="arm-stat tier-${tier}"><span class="badge-dot"></span>${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`;
+	const inscriptions = insKeys
+	  .map(k => armRow[`${arm.prefix}${k}`])
+	  .filter(v => !isEmptyVal(v))
+	  .map(v => {
+	    const tier = getAbilityTier(String(v));
+	    return `<span class="arm-ins tier-${tier}"><span class="badge-dot"></span>${escapeHtml(String(v))}</span>`;
 	  })
-      .join("");
+	  .join("");
 
     const statSlots = [
       { n: `${arm.prefix}_stat_name`,   v: `${arm.prefix}_stat`   },
