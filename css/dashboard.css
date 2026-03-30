@@ -471,6 +471,14 @@ footer {
   margin-top: 2px;
 }
 
+.arm-ins-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 .arm-ins {
   display: inline-flex;
   align-items: center;
