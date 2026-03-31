@@ -1055,7 +1055,28 @@ function isMarchEmpty(row, suffix) {
     return isEmptyVal(row[colKey]);
   });
 }
+function getArmTroopType(armRow, prefix) {
+  const statKeys = [
+    `${prefix}_stat_name`,
+    `${prefix}_stat2_name2`,
+    `${prefix}_stat3_name3`,
+    `${prefix}_stat4_name4`,
+  ];
+  for (const key of statKeys) {
+    const val = String(armRow[key] || "").toLowerCase();
+    if (val.includes("infantry")) return "infantry";
+    if (val.includes("cavalry")) return "cavalry";
+    if (val.includes("archer")) return "archer";
+  }
+  return "all";
+}
 
+const TROOP_ICONS = {
+  infantry: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"/><polyline points="15 5 19 5 19 9"/><line x1="5" y1="19" x2="8" y2="16"/></svg>`,
+  archer:   `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 Q12 4 19 5"/><path d="M5 19 Q6 12 19 5"/><line x1="12" y1="12" x2="21" y2="3"/><polyline points="18 3 21 3 21 6"/></svg>`,
+  cavalry:  `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#4caf50"><path d="M18 4c0 0-1 1-1 3l-2-1c0 0-1-2-3-2s-4 2-4 5c0 1 0 2 1 3l-3 4c-1 1 0 3 1 3h2l3-4c1 1 2 1 3 1s2 0 3-1l1 4h2l-1-6c1-1 1-2 1-3 0-2-1-4-2-5 1 0 1-1 1-1L18 4z"/></svg>`,
+  all:      `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff8c00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 6v6c0 5 4 9 8 10 4-1 8-5 8-10V6L12 2z"/><line x1="9" y1="15" x2="15" y2="9"/><polyline points="13 9 15 9 15 11"/></svg>`,
+};
 function renderEquipBox(slot, itemName, lvl, tal, marchIdx) {
   const isEmpty = isEmptyVal(itemName);
   const imgSrc  = isEmpty ? null : `icons/${encodeURIComponent(String(itemName).trim())}.webp`;
@@ -1161,13 +1182,16 @@ function renderArmamentRow(armRow) {
       .filter(s => !isEmptyVal(armRow[s.n]) && !isEmptyVal(armRow[s.v]))
       .map(s => `<span class="arm-stat">${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`)
       .join("");
-
-    return `
-      <div class="arm-card">
-        <div class="arm-name">${escapeHtml(String(name))}</div>
-		${inscriptions ? `<div class="arm-ins-group">${inscriptions}</div>` : ""}
-		${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`         : ""}
-      </div>`;
+	
+	const troopType = getArmTroopType(armRow, arm.prefix);
+	const icon = TROOP_ICONS[troopType];
+	
+	return `
+	  <div class="arm-card">
+	    <div class="arm-name">${icon} ${escapeHtml(String(name))}</div>
+	    ${inscriptions ? `<div class="arm-ins-group">${inscriptions}</div>` : ""}
+	    ${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`        : ""}
+ 		</div>`;
   }).filter(Boolean).join("");
 
   return `
