@@ -460,9 +460,6 @@ footer {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-color);
-  display: flex;
-  align-items: center;
-  gap: 5px;
   text-align: center;
   word-break: break-word;
 }
@@ -510,10 +507,22 @@ footer {
 .arm-ins.tier-gray .badge-dot { background: #9a9aa0; }
 .arm-stat b { font-weight: 600; opacity: 0.9; }
 .arm-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.9rem;
   color: var(--text-color);
   opacity: 0.75;
-  text-align: center;
+}
+.arm-stat-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.arm-stat-icon svg {
+  width: 14px;
+  height: 14px;
 }
 .arm-stat b {
   opacity: 1;
