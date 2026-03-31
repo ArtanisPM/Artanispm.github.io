@@ -1178,17 +1178,22 @@ function renderArmamentRow(armRow) {
       { n: `${arm.prefix}_stat3_name3`, v: `${arm.prefix}_stat3`  },
       { n: `${arm.prefix}_stat4_name4`, v: `${arm.prefix}_stat4`  },
     ];
-    const statsHtml = statSlots
-      .filter(s => !isEmptyVal(armRow[s.n]) && !isEmptyVal(armRow[s.v]))
-      .map(s => `<span class="arm-stat">${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`)
-      .join("");
+	const statsHtml = statSlots
+	  .filter(s => !isEmptyVal(armRow[s.n]) && !isEmptyVal(armRow[s.v]))
+	  .map(s => {
+	    const tier = getAbilityTier(String(armRow[s.n]));
+	    const troopType = getArmTroopType(armRow, arm.prefix);
+	    const icon = TROOP_ICONS[troopType];
+	    return `<span class="arm-stat tier-${tier}"><span class="arm-stat-icon">${icon}</span>${escapeHtml(String(armRow[s.n]))}: <b>${escapeHtml(String(armRow[s.v]))}</b></span>`;
+	  })
+	  .join("");
 	
 	const troopType = getArmTroopType(armRow, arm.prefix);
 	const icon = TROOP_ICONS[troopType];
 	
 	return `
 	  <div class="arm-card">
-	    <div class="arm-name">${icon} ${escapeHtml(String(name))}</div>
+	    <div class="arm-name">${escapeHtml(String(name))}</div>
 	    ${inscriptions ? `<div class="arm-ins-group">${inscriptions}</div>` : ""}
 	    ${statsHtml    ? `<div class="arm-stats">${statsHtml}</div>`        : ""}
  		</div>`;
