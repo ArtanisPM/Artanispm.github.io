@@ -188,7 +188,15 @@ let resultsGridApi = null;
       theme: agGrid.themeQuartz,
       columnDefs: powerRangeColumnDefs,
       rowData: powerRanges,
-
+      rowHeight: 42,
+      autoSizeStrategy: {
+        type: "fitGridWidth",
+        defaultMinWidth: 100,
+      },
+      defaultColDef: {
+        resizable: true,
+        sortable: true,
+      },
       onCellClicked: async (event) => {
         const row = event.data;
         const idx = powerRanges.indexOf(row);
