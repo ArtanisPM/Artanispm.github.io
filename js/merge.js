@@ -191,7 +191,7 @@ function exportToXlsx(rows) {
   XLSX.utils.book_append_sheet(wb, ws, "Merged");
   XLSX.writeFile(
     wb,
-    `merge-${getExportTimestamp()}.xlsx`,
+    `merge-${getExportTimestamp()}.xlsx`, { compression: true }
   );
 }
 
