@@ -185,6 +185,7 @@
   margin-bottom: 20px;
   border-bottom: 1px solid var(--table-border);
   padding-bottom: 0;
+  flex-wrap: wrap;
 }
 
 .eq-section-tab {
@@ -1289,4 +1290,103 @@ body.dark .eq-arm-ins--blue {
   font-size: 0.84rem;
   padding: 9px 14px;
   white-space: nowrap;
+}
+
+.eq-import-panel {
+  padding: 16px;
+  border: 1px solid var(--table-border);
+  border-radius: 10px;
+  background: var(--bg-color);
+}
+
+.eq-import-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.eq-import-head h2 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.eq-import-head p {
+  margin: 0;
+  max-width: 720px;
+  color: var(--text-color);
+  opacity: 0.58;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.eq-import-head code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--table-border);
+  color: var(--text-color);
+}
+
+.eq-import-btn {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  font-size: 0.86rem;
+}
+
+.eq-import-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) 1fr;
+  gap: 14px;
+  align-items: end;
+}
+
+.eq-import-grid--kvk {
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) minmax(220px, 1.2fr);
+}
+
+.eq-import-field,
+.eq-import-file {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.eq-import-field span,
+.eq-import-file span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-color);
+  opacity: 0.55;
+}
+
+.eq-import-file input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--table-border);
+  background: var(--table-bg);
+  color: var(--text-color);
+  font-size: 0.8rem;
+}
+
+.eq-import-status {
+  grid-column: 1 / -1;
+  min-height: 20px;
+  font-size: 0.82rem;
+  color: var(--text-color);
+  opacity: 0.65;
+}
+.eq-import-status.ok { color: #4caf50; opacity: 1; font-weight: 600; }
+.eq-import-status.err { color: #f44336; opacity: 1; font-weight: 600; }
+.eq-import-status.info { color: var(--chart-line); opacity: 1; }
+
+@media (max-width: 760px) {
+  .eq-import-head { flex-direction: column; }
+  .eq-import-btn { width: 100%; justify-content: center; }
+  .eq-import-grid,
+  .eq-import-grid--kvk { grid-template-columns: 1fr; }
 }
