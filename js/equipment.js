@@ -329,6 +329,15 @@ const dbStatus    = document.getElementById("dbStatus");
 const loadGovBtn  = document.getElementById("loadGovBtn");
 const saveBtn     = document.getElementById("saveBtn");
 const newGovBtn   = document.getElementById("newGovBtn");
+const farmFileInput    = document.getElementById("farmFileInput");
+const farmImportBtn    = document.getElementById("farmImportBtn");
+const farmImportStatus = document.getElementById("farmImportStatus");
+const kvkFileInput     = document.getElementById("kvkFileInput");
+const kvkImportBtn     = document.getElementById("kvkImportBtn");
+const kvkImportStatus  = document.getElementById("kvkImportStatus");
+const kvkKingdomInput  = document.getElementById("kvkKingdomInput");
+const kvkNumberInput   = document.getElementById("kvkNumberInput");
+const kvkNameInput     = document.getElementById("kvkNameInput");
 
 document.getElementById("dbFileLabel").addEventListener("click", () => dbFileInput.click());
 
@@ -342,10 +351,12 @@ dbFileInput.addEventListener("change", async () => {
     const bytes = new Uint8Array(await file.arrayBuffer());
     db = new SQL.Database(bytes);
     db.exec("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1");
+    ensureAppSchema();
     setDbStatus("✓ Loaded", "ok");
     loadGovBtn.disabled = false;
     saveBtn.disabled    = false;
     newGovBtn.disabled  = false;
+    updateImportButtons();
     preloadIconsFromDb();
   } catch (e) {
     setDbStatus("✗ Invalid DB", "err");
@@ -353,6 +364,7 @@ dbFileInput.addEventListener("change", async () => {
     loadGovBtn.disabled = true;
     saveBtn.disabled    = true;
     newGovBtn.disabled  = true;
+    updateImportButtons();
     console.error(e);
   }
 });
@@ -361,6 +373,36 @@ function setDbStatus(msg, cls) {
   dbStatus.textContent = msg;
   dbStatus.className   = "eq-db-status" + (cls ? " " + cls : "");
 }
+
+function updateImportButtons() {
+  if (farmImportBtn) farmImportBtn.disabled = !db || !farmFileInput?.files?.length;
+  if (kvkImportBtn) {
+    kvkImportBtn.disabled = !db || !kvkFileInput?.files?.length ||
+      !kvkKingdomInput?.value.trim() || !Number(kvkNumberInput?.value);
+  }
+}
+
+function setImportStatus(el, msg, cls) {
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "eq-import-status" + (cls ? " " + cls : "");
+}
+
+function ensureAppSchema() {
+  if (!db) return;
+  const stmts = SCHEMA_SQL.split(";").map(s => s.trim()).filter(Boolean);
+  for (const stmt of stmts) {
+    try { db.run(stmt + ";"); } catch (e) { console.warn("schema update skipped:", e); }
+  }
+}
+
+farmFileInput?.addEventListener("change", updateImportButtons);
+kvkFileInput?.addEventListener("change", updateImportButtons);
+kvkKingdomInput?.addEventListener("input", updateImportButtons);
+kvkNumberInput?.addEventListener("input", updateImportButtons);
+kvkNameInput?.addEventListener("input", updateImportButtons);
+farmImportBtn?.addEventListener("click", importFarmAccounts);
+kvkImportBtn?.addEventListener("click", importKvkWorkbook);
 
 const govIdInput   = document.getElementById("govIdInput");
 const govNameInput = document.getElementById("govNameInput");
@@ -711,6 +753,231 @@ function showSaveStatus(msg, cls) {
     saveStatus._t = setTimeout(() => { saveStatus.textContent = ""; saveStatus.className = "eq-save-status"; }, 5000);
 }
 
+function requireWorkbookLibrary() {
+  if (window.XLSX) return true;
+  alert("Excel importer failed to load. Check your internet connection and reload the page.");
+  return false;
+}
+
+async function readWorkbook(file) {
+  const bytes = await file.arrayBuffer();
+  return XLSX.read(bytes, { type: "array" });
+}
+
+function sheetRows(workbook, sheetName, opts = {}) {
+  const sheet = workbook.Sheets[sheetName];
+  return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true, ...opts });
+}
+
+function importToInt(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = Number(String(v).replace(/,/g, "").trim());
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+function importToFloat(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  const n = Number(String(v).replace(/,/g, "").trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+function importToText(v, fallback = "") {
+  if (v === null || v === undefined || String(v).trim() === "") return fallback;
+  return String(v).trim();
+}
+
+function normalizeImportDate(sheetName) {
+  const name = String(sheetName);
+  if (name.includes("_") && name.length === 10) {
+    const [d, m, y] = name.split("_");
+    return `${y}-${m}-${d}`;
+  }
+  return name;
+}
+
+async function importFarmAccounts() {
+  if (!db || !farmFileInput?.files?.length) return;
+  if (!requireWorkbookLibrary()) return;
+
+  const file = farmFileInput.files[0];
+  farmImportBtn.disabled = true;
+  setImportStatus(farmImportStatus, "Importing farm accounts...", "info");
+
+  try {
+    ensureAppSchema();
+    const workbook = await readWorkbook(file);
+    let imported = 0;
+
+    db.run("BEGIN");
+    try {
+      for (const sheetName of workbook.SheetNames) {
+        const rows = sheetRows(workbook, sheetName);
+        for (const raw of rows) {
+          const row = {};
+          for (const [key, value] of Object.entries(raw)) {
+            row[String(key).trim().toLowerCase()] = value;
+          }
+
+          const playerId = importToInt(row.id);
+          if (!playerId) continue;
+
+          db.run(
+            `INSERT OR REPLACE INTO farm_accounts
+             (name, player_id, power, killpoints, deads, ch, acc_type, main_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              importToText(row.name, ""),
+              playerId,
+              importToInt(row.power),
+              importToInt(row.killpoints),
+              importToInt(row.deads),
+              importToInt(row.ch),
+              importToText(row.acc_type, ""),
+              importToInt(row.main_id),
+            ]
+          );
+          imported++;
+        }
+      }
+      db.run("COMMIT");
+    } catch (e) {
+      db.run("ROLLBACK");
+      throw e;
+    }
+
+    downloadDb();
+    setImportStatus(farmImportStatus, `Imported ${imported} farm account${imported === 1 ? "" : "s"} and downloaded the database.`, "ok");
+  } catch (e) {
+    console.error("importFarmAccounts:", e);
+    setImportStatus(farmImportStatus, "Farm import failed: " + e.message, "err");
+  } finally {
+    updateImportButtons();
+  }
+}
+
+async function importKvkWorkbook() {
+  if (!db || !kvkFileInput?.files?.length) return;
+  if (!requireWorkbookLibrary()) return;
+
+  const kingdom = kvkKingdomInput.value.trim();
+  const kvkNumber = importToInt(kvkNumberInput.value);
+  const kvkName = kvkNameInput.value.trim() || "KvK";
+  if (!kingdom || !kvkNumber) {
+    setImportStatus(kvkImportStatus, "Enter kingdom and KvK number first.", "err");
+    return;
+  }
+
+  kvkImportBtn.disabled = true;
+  setImportStatus(kvkImportStatus, "Importing KvK snapshots...", "info");
+
+  try {
+    ensureAppSchema();
+    const workbook = await readWorkbook(kvkFileInput.files[0]);
+    let snapshotCount = 0;
+    let statCount = 0;
+    let lastSnapshotId = null;
+
+    db.run("BEGIN");
+    try {
+      let kvkRows = db.exec(
+        "SELECT id FROM kvks WHERE kingdom = ? AND kvk_number = ?",
+        [kingdom, kvkNumber]
+      );
+      let kvkId = kvkRows.length && kvkRows[0].values.length ? kvkRows[0].values[0][0] : null;
+
+      if (!kvkId) {
+        db.run(
+          "INSERT INTO kvks (kingdom, kvk_number, name, is_latest) VALUES (?, ?, ?, 0)",
+          [kingdom, kvkNumber, kvkName]
+        );
+        kvkRows = db.exec(
+          "SELECT id FROM kvks WHERE kingdom = ? AND kvk_number = ?",
+          [kingdom, kvkNumber]
+        );
+        kvkId = kvkRows[0].values[0][0];
+      } else {
+        db.run("UPDATE kvks SET name = ? WHERE id = ?", [kvkName, kvkId]);
+      }
+
+      db.run("UPDATE kvks SET is_latest = 0 WHERE kingdom = ?", [kingdom]);
+      db.run("UPDATE snapshots SET is_last = 0 WHERE kvk_id = ?", [kvkId]);
+
+      for (const sheetName of workbook.SheetNames) {
+        const rows = sheetRows(workbook, sheetName, { header: 1 });
+        const snapshotDate = normalizeImportDate(sheetName);
+
+        db.run(
+          "INSERT OR IGNORE INTO snapshots (kvk_id, snapshot_date) VALUES (?, ?)",
+          [kvkId, snapshotDate]
+        );
+        const snapRows = db.exec(
+          "SELECT id FROM snapshots WHERE kvk_id = ? AND snapshot_date = ?",
+          [kvkId, snapshotDate]
+        );
+        const snapshotId = snapRows[0].values[0][0];
+        lastSnapshotId = snapshotId;
+        snapshotCount++;
+
+        for (const row of rows.slice(1)) {
+          const governorId = importToInt(row[0]);
+          if (!governorId) continue;
+          const name = importToText(row[1], "");
+
+          db.run(
+            `INSERT OR IGNORE INTO governors (governor_id, kingdom, name)
+             VALUES (?, ?, ?)`,
+            [String(governorId), kingdom, name]
+          );
+
+          db.run(
+            `INSERT OR REPLACE INTO stats VALUES (
+              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )`,
+            [
+              snapshotId,
+              String(governorId),
+              importToInt(row[2]),
+              importToInt(row[14]),
+              importToInt(row[12]),
+              importToInt(row[13]),
+              importToInt(row[15]),
+              importToInt(row[16]),
+              importToInt(row[3]),
+              importToInt(row[4]),
+              importToInt(row[5]),
+              importToInt(row[6]),
+              importToInt(row[7]),
+              importToInt(row[8]),
+              importToFloat(row[9]),
+              importToText(row[10], "NO"),
+              importToText(row[11], "OK"),
+              importToInt(row[17]),
+            ]
+          );
+          statCount++;
+        }
+      }
+
+      if (lastSnapshotId) {
+        db.run("UPDATE snapshots SET is_last = 1 WHERE id = ?", [lastSnapshotId]);
+      }
+      db.run("UPDATE kvks SET is_latest = 1 WHERE id = ?", [kvkId]);
+      db.run("COMMIT");
+    } catch (e) {
+      db.run("ROLLBACK");
+      throw e;
+    }
+
+    downloadDb();
+    setImportStatus(kvkImportStatus, `Imported ${snapshotCount} snapshot${snapshotCount === 1 ? "" : "s"} and ${statCount} stat row${statCount === 1 ? "" : "s"}. Database downloaded.`, "ok");
+  } catch (e) {
+    console.error("importKvkWorkbook:", e);
+    setImportStatus(kvkImportStatus, "KvK import failed: " + e.message, "err");
+  } finally {
+    updateImportButtons();
+  }
+}
+
 document.querySelectorAll(".eq-section-tab").forEach(btn => {
   btn.addEventListener("click", () => {
     activeTab = btn.dataset.tab;
@@ -718,14 +985,10 @@ document.querySelectorAll(".eq-section-tab").forEach(btn => {
     document.querySelectorAll(".eq-section-tab").forEach(b =>
       b.classList.toggle("active", b === btn));
 
-    document.getElementById("equipmentPanel").style.display =
-      activeTab === "equipment" ? "" : "none";
-
-    document.getElementById("pairsPanel").style.display =
-      activeTab === "pairs" ? "" : "none";
-
-    document.getElementById("armamentsPanel").style.display =
-      activeTab === "armaments" ? "" : "none";
+    for (const tabName of ["equipment", "pairs", "armaments", "farmImport", "kvkImport"]) {
+      const panel = document.getElementById(`${tabName}Panel`);
+      if (panel) panel.style.display = activeTab === tabName ? "" : "none";
+    }
 
     renderActiveTab();
   });
@@ -735,6 +998,7 @@ function renderActiveTab() {
   if (activeTab === "equipment") renderSlotGrid();
   else if (activeTab === "pairs") renderPairsGrid();
   else if (activeTab === "armaments") renderArmamentsGrid();
+  else if (activeTab === "farmImport" || activeTab === "kvkImport") updateImportButtons();
 }
 
 document.getElementById("marchTabs").addEventListener("click", e => {
