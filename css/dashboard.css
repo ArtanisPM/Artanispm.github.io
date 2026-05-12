@@ -135,11 +135,77 @@
 .cell-diff.negative { 
   background: #f44336; 
 }
-.ag-cell-value {
+.ag-theme-quartz .ag-cell {
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+}
+.ag-theme-quartz .ag-header-cell-label {
+  justify-content: center;
+  text-align: center;
+}
+.ag-cell-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   height: 100%;
+  width: 100%;
+  text-align: center;
+}
+.metric-stack-cell {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+.metric-stack {
+  display: flex;
+  min-height: 46px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.15;
+}
+.metric-base {
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.metric-rollup {
+  font-size: 12.5px;
+  line-height: 1.15;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.gov-name-stack {
+  display: flex;
+  min-height: 46px;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.15;
+  text-align: center;
+}
+.gov-name-value {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gov-name-stack .gov-id {
+  font-size: 12.5px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.ag-theme-quartz .ag-tooltip {
+  white-space: pre-line;
+  text-align: center;
 }
 #chart-section {
   opacity: 0;
